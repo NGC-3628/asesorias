@@ -2,94 +2,97 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Repositories\HeroeRepository;
-use App\Models\Hero;
 use App\Http\Requests\heroesRequest\HeroCreateRequest;
 use App\Http\Requests\heroesRequest\HeroUpdateRequest;
-
+use App\Repositories\HeroeRepository;
+use Illuminate\Http\Request;
 
 class HeroController extends Controller
 {
-    protected $HeroeRepository;
-    
-    public function __construct(HeroeRepository $HeroeRepository)
+    protected $heroeRepository;
+
+    public function __construct(HeroeRepository $heroeRepository)
     {
-        $this->HeroeRepository = $HeroeRepository;
+        $this->heroeRepository = $heroeRepository;
     }
+
     public function index()
     {
-        $heroes = $this->HeroeRepository->listaHeroes();
+        $heroes = $this->heroeRepository->getAll();
 
         return response()->json([
-            "mensaje" => "lista de heroes",
-            "data" => $heroes
-        ]);
+            'mensaje' => 'Lista de héroes',
+            'data' => $heroes
+        ], 200);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function show($id)
     {
-        //
+        $hero = $this->heroeRepository->find($id);
+
+        if (!$hero) {
+            return response()->json([
+                'mensaje' => 'Héroe no encontrado'
+            ], 404);
+        }
+
+        return response()->json([
+            'mensaje' => 'Detalle del héroe',
+            'data' => $hero
+        ], 200);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(HeroCreateRequest $request)
     {
-         $hero = $this->HeroeRepository->createHero($request->validated());
+        $hero = $this->heroeRepository->create($request->validated());
+
         return response()->json([
-            "mensaje" => "heroe registrado",
-            "hero" => $hero
-        ]);
+            'mensaje' => 'Héroe registrado',
+            'hero' => $hero
+        ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function update(HeroUpdateRequest $request, $id)
     {
-        //
-    }
+        $hero = $this->heroeRepository->update($id, $request->validated());
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(HeroUpdateRequest $request, string $id)
-    {
-       $hero = $this->HeroeRepository->updateHero($id, $request->validated());
         return response()->json([
-            "mensaje" => $hero
-        ]);
+            'mensaje' => 'Héroe actualizado',
+            'hero' => $hero
+        ], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        $hero = $this->HeroeRepository->eliminarHero($id);
+        $this->heroeRepository->delete($id);
+
         return response()->json([
-            "mensaje" => $hero
-        ]);
+            'mensaje' => 'Héroe eliminado'
+        ], 200);
     }
 
-    public function OPheroe(){
-        $heroes = $this ->HeroeRepository->OPheroe();
-        return response()->json([
-            "mensaje" => "Heroes con mas de un poder (consulta)",
-            "data" => $heroes
+    public function addPoderes(Request $request, $id)
+    {
+        $request->validate([
+            'poderes' => 'required|array',
+            'poderes.*' => 'exists:poderes,id'
         ]);
+
+        $hero = $this->heroeRepository->addPoderes($id, $request->poderes);
+
+        return response()->json([
+            'mensaje' => 'Poderes agregados al héroe',
+            'hero' => $hero
+        ], 200);
+    }
+
+    public function heroesConMasDeUnPoder()
+    {
+        $heroes = $this->heroeRepository->getHeroesConMasDeUnPoder();
+
+        return response()->json([
+            'mensaje' => 'Lista de héroes con más de un poder',
+            'data' => $heroes
+        ], 200);
     }
 }

@@ -1,112 +1,62 @@
 <?php
+
 namespace App\Repositories;
 
 use App\Models\Hero;
-use Exception;
-use App\Repositories\PoderRepository;
 
-class HeroeRepository {
-    protected $PoderRepository;
-
-    public function __construct(PoderRepository $PoderRepository){
-        $this->PoderRepository = $PoderRepository;
+class HeroeRepository
+{
+    public function getAll()
+    {
+        return Hero::with(['rol', 'poderes'])->get();
     }
 
-
-    public function createHero(array $data){
-        try{
-            $hero = Hero::create([
-                "nombre" => $data["nombre"],
-                "vida" => $data['vida'],
-                "habilidad" => $data['habilidad'],
-                "rol_id" => $data['rol_id']
-            ]);
-
-            $poderes = [];
-
-            foreach($data["poderes"] as $poderData){
-                
-            $poder = $this->PoderRepository -> nuevoPoder([
-                "nombre" => $poderData["nombre"],
-                "descripcion" => $poderData["descripcion"]
-            ]);
-
-            $hero->poderes()->attach($poder->id);
-            $poderes[] = $poder;
-            }
-
-            return [
-                "heroe" => $hero,
-                "poderes" => $poderes
-            ];
-        }
-        catch(Exception $e){
-            return [
-                "mensaje" => $e->getMessage()
-            ];
-        }
+    public function find($id)
+    {
+        return Hero::with(['rol', 'poderes'])->find($id);
     }
 
-    public function listaHeroes(){
-        try {
-            $heroes = Hero::with(['poderes', 'rol'])->get();
-            return $heroes;
+    public function create(array $data)
+    {
+        $hero = Hero::create($data);
+
+        if (isset($data['poderes']) && !empty($data['poderes'])) {
+            $hero->poderes()->attach($data['poderes']);
         }
-        catch(Exception $e){
-            return [
-                "mensaje" => $e->getMessage()
-            ];
-        }
+
+        return Hero::with(['rol', 'poderes'])->find($hero->id);
     }
 
-    // ! NEW
-    // retorna heroe con mas de un poder
-    public function OPheroe(){
-        return Hero::with('poderes')->has('poderes', '>', 1)->get();
+    public function update($id, array $data)
+    {
+        $hero = Hero::findOrFail($id);
+        $hero->update($data);
+
+        if (isset($data['poderes'])) {
+            $hero->poderes()->sync($data['poderes']);
+        }
+
+        return Hero::with(['rol', 'poderes'])->find($hero->id);
     }
 
-    public function updateHero(int $id, array $data){
-        try {
-            $hero = Hero::find($id);
-            $hero->update([
-                "nombre" => $data['nombre'] ?? $hero->nombre,
-                "vida" => $data['vida'] ?? $hero->vida,
-                "habilidad" => $data['habilidad'] ?? $hero->habilidad
-            ]);
-
-            if(isset($data["poderes"])){
-                foreach($data["poderes"] as $poderData){
-                    $poder = $hero -> poderes() -> where("poderes.id", $poderData["id"])->first();
-                    if($poder){
-                        $poder->update([
-                            "nombre" => $poderData["nombre"], "descripcion" => $poderData["descripcion"]
-                        ]);
-                    }
-                }
-            }
-
-            return "heroe actualizado";
-
-        }
-        catch(Exception $e){
-            return [
-                "mensaje" => $e->getMessage()
-            ];
-        }
+    public function delete($id)
+    {
+        $hero = Hero::findOrFail($id);
+        return $hero->delete();
     }
 
-    public function eliminarHero(int $id){
-        try {
-            $hero = Hero::find($id);
-            $hero->delete();
+    public function addPoderes($id, array $poderes)
+    {
+        $hero = Hero::findOrFail($id);
+        $hero->poderes()->attach($poderes);
 
-            return "eliminado correctamente";
-        }
-        catch(Exception $e){
-            return [
-                "mensaje" => $e->getMessage()
-            ];
-        }
+        return Hero::with(['rol', 'poderes'])->find($hero->id);
     }
 
+    public function getHeroesConMasDeUnPoder()
+    {
+        return Hero::has('poderes', '>', 1)
+                   ->with(['rol', 'poderes'])
+                   ->get();
+    }
 }
